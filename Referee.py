@@ -68,10 +68,21 @@ class GameProxy:
 
 
 def switch_turn(who):
+    """
+    switch the turn for player who, from 1 to -1 and from -1 to 1
+    :param who:
+    :return:
+    """
     return -who
 
 
 def agent_proxy(agent, action_q, env_q):
+    """
+    the function utilizes AgentProxy to used by multiprocessing Process
+    :param agent: the agent type
+    :param action_q: action info queue
+    :param env_q: environment info queue
+    """
     proxy = AgentProxy(agent, action_q, env_q)
     while True:
         # keep evaluating
@@ -79,6 +90,17 @@ def agent_proxy(agent, action_q, env_q):
 
 
 def game_proxy(env_q_a1, env_q_a2, action_q_a1, action_q_a2, result_q, start_who, board=None):
+    """
+    the function utilizes GameProxy to used by multiprocessing Process
+    :param env_q_a1: environment info queue to agent 1
+    :param env_q_a2: environment info queue to agent 2
+    :param action_q_a1: action info queue to agent 1
+    :param action_q_a2: action info queue to agent 2
+    :param result_q: result queue to the referee
+    :param start_who: start with player whom
+    :param board: start board. If None, start with empty board
+    :return:
+    """
     logging.basicConfig(level=logging.DEBUG)
     logger = logging.getLogger(__name__)
 
@@ -103,6 +125,9 @@ def game_proxy(env_q_a1, env_q_a2, action_q_a1, action_q_a2, result_q, start_who
 
 
 class Referee:
+    """
+    The class that setup the processes of the agents and the game, and get the result.
+    """
     def __init__(self):
         self.start_who = 1
 
