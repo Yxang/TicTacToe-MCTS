@@ -58,7 +58,6 @@ class GameProxy:
     def action(self, who):
         """
         perform the action received from player
-        :param a: the action
         :param who: which agent, 1 is 1 or "X", -1 is 2 or "O"
         """
         assert who in (1, -1)
