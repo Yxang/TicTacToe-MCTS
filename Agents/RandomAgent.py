@@ -12,7 +12,6 @@ class RandomAgent:
         """
         set this agent as player 1 for "X" or -1 for "O"
         :param player: 1 for "X" or -1 for "O"
-        :return:
         """
         assert player in (1, -1)
         self.player = player

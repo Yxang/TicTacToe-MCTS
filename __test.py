@@ -1,7 +1,7 @@
 import unittest
 import Env
 import Referee
-import RandomAgent
+from Agents import RandomAgent
 import multiprocessing
 import numpy as np
 import time

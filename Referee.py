@@ -1,8 +1,7 @@
 import multiprocessing
 import Env
-import RandomAgent
+from Agents import RandomAgent
 import logging
-import time
 
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
