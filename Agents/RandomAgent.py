@@ -5,8 +5,8 @@ class RandomAgent:
     """
     Agent plays TicTacToe for randomly chosen moves
     """
-    def __init__(self):
-        self.player = None
+    def __init__(self, player):
+        self.set_player(player)
 
     def set_player(self, player):
         """

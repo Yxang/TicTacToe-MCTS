@@ -139,11 +139,13 @@ class Referee:
         self.to_agent2_action_q = None
         self.result_q = None
 
-    def setup(self, agent1, agent2):
+    def setup(self, agent1, agent2, log=False, board=None):
         """
         setup the processes
         :param agent1: agent object for player 1, or "X", 1
         :param agent2: agent object for player 2, or "O", -1
+        :param log: weather to log the game, passed to game_proxy
+        :param board: the board to start with, passed to game_proxy
         """
         self.to_agent1_env_q = multiprocessing.Queue()
         self.to_agent1_action_q = multiprocessing.Queue()
@@ -164,7 +166,9 @@ class Referee:
                                                           self.to_agent1_action_q,
                                                           self.to_agent2_action_q,
                                                           self.result_q,
-                                                          self.start_who)
+                                                          self.start_who,
+                                                          log,
+                                                          board)
                                                     )
 
     def host(self):
@@ -184,8 +188,8 @@ class Referee:
 
 if __name__ == '__main__':
     referee = Referee()
-    agent1 = RandomAgent.RandomAgent()
-    agent2 = RandomAgent.RandomAgent()
+    agent1 = RandomAgent.RandomAgent(1)
+    agent2 = RandomAgent.RandomAgent(-1)
     referee.setup(agent1, agent2)
     result = referee.host()
     logger.debug(f'the result is {result}')

@@ -270,8 +270,8 @@ class TestReferee(unittest.TestCase):
     def test_referee(self):
         referee = Referee.Referee()
         for _ in range(5):
-            agent1 = RandomAgent.RandomAgent()
-            agent2 = RandomAgent.RandomAgent()
+            agent1 = RandomAgent.RandomAgent(1)
+            agent2 = RandomAgent.RandomAgent(-1)
             referee.setup(agent1, agent2)
             result = referee.host()
             self.assertIn(result, (1, -1, 0))
