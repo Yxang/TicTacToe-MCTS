@@ -88,7 +88,7 @@ def agent_proxy(agent, action_q, env_q):
         proxy.evaluate()
 
 
-def game_proxy(env_q_a1, env_q_a2, action_q_a1, action_q_a2, result_q, start_who, board=None):
+def game_proxy(env_q_a1, env_q_a2, action_q_a1, action_q_a2, result_q, start_who, log=False, board=None):
     """
     the function utilizes GameProxy to used by multiprocessing Process
     :param env_q_a1: environment info queue to agent 1
@@ -97,6 +97,7 @@ def game_proxy(env_q_a1, env_q_a2, action_q_a1, action_q_a2, result_q, start_who
     :param action_q_a2: action info queue to agent 2
     :param result_q: result queue to the referee
     :param start_who: start with player whom
+    :param log: if logging
     :param board: start board. If None, start with empty board
     :return:
     """
@@ -118,8 +119,9 @@ def game_proxy(env_q_a1, env_q_a2, action_q_a1, action_q_a2, result_q, start_who
         # check status
         status = proxy.game.check_game_state()
         # log the game
-        logger.debug(f'Turn {turn}')
-        logger.debug('Board: \n' + str(proxy.game))
+        if log:
+            logger.debug(f'Turn {turn}')
+            logger.debug('Board: \n' + str(proxy.game))
     result_q.put(status)
 
 
@@ -132,11 +134,11 @@ class Referee:
 
         self.agent_proxy_p = dict()
         self.game_proxy_p = None
-        self.to_agent1_env_q = multiprocessing.Queue()
-        self.to_agent1_action_q = multiprocessing.Queue()
-        self.to_agent2_env_q = multiprocessing.Queue()
-        self.to_agent2_action_q = multiprocessing.Queue()
-        self.result_q = multiprocessing.Queue()
+        self.to_agent1_env_q = None
+        self.to_agent1_action_q = None
+        self.to_agent2_env_q = None
+        self.to_agent2_action_q = None
+        self.result_q = None
 
     def setup(self, agent1, agent2):
         """
@@ -144,6 +146,11 @@ class Referee:
         :param agent1: agent object for player 1, or "X", 1
         :param agent2: agent object for player 2, or "O", -1
         """
+        self.to_agent1_env_q = multiprocessing.Queue()
+        self.to_agent1_action_q = multiprocessing.Queue()
+        self.to_agent2_env_q = multiprocessing.Queue()
+        self.to_agent2_action_q = multiprocessing.Queue()
+        self.result_q = multiprocessing.Queue()
         self.agent_proxy_p[1] = multiprocessing.Process(name='agent_1',
                                                         target=agent_proxy,
                                                         args=(agent1, self.to_agent1_action_q, self.to_agent1_env_q))

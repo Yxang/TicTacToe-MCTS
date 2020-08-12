@@ -1,7 +1,11 @@
 import unittest
 import Env
+import Referee
 import RandomAgent
+import multiprocessing
 import numpy as np
+import time
+
 
 class TestGameEnv(unittest.TestCase):
     def test_get_valid_moves(self):
@@ -165,6 +169,7 @@ class TestGameEnv(unittest.TestCase):
                                                                  [0, 0, -1],
                                                                  [0, -1, 0]])))
 
+
 class TestRandomAgent(unittest.TestCase):
     def test_set_player(self):
         agent = RandomAgent.RandomAgent()
@@ -203,6 +208,74 @@ class TestRandomAgent(unittest.TestCase):
         self.assertGreater(count[0, 0], 20)
         self.assertGreater(count[1, 1], 20)
         self.assertGreater(count[2, 2], 20)
+
+
+class TestReferee(unittest.TestCase):
+    def test_switch_turn(self):
+        self.assertEqual(-1, Referee.switch_turn(1))
+        self.assertEqual(1, Referee.switch_turn(-1))
+
+    def test_agent_proxy(self):
+        agent = RandomAgent.RandomAgent()
+        action_q = multiprocessing.Queue()
+        env_q = multiprocessing.Queue()
+        p = multiprocessing.Process(target=Referee.agent_proxy,
+                                    args=(agent, action_q, env_q))
+        p.start()
+
+        board = np.array([[ 0, 1, 1],
+                          [ 1, 0,-1],
+                          [ 1, 1, 0]])
+        env_q.put(board)
+        action = action_q.get()
+        self.assertTrue(action in Env.get_valid_moves(board))
+
+        p.terminate()
+
+    def test_game_proxy(self):
+        env_q_a1 = multiprocessing.Queue()
+        env_q_a2 = multiprocessing.Queue()
+        action_q_a1 = multiprocessing.Queue()
+        action_q_a2 = multiprocessing.Queue()
+        result_q = multiprocessing.Queue()
+
+        p = multiprocessing.Process(target=Referee.game_proxy,
+                                    args=(env_q_a1, env_q_a2, action_q_a1, action_q_a2, result_q, 1, False))
+        p.start()
+
+        time.sleep(0.5)
+        self.assertTrue(not env_q_a1.empty())
+        self.assertTrue(env_q_a2.empty())
+        env_q_a1.get()
+        action_q_a1.put((0, 0))
+        env_q_a2.get()
+        action_q_a2.put((0, 1))
+        env_q_a1.get()
+        action_q_a1.put((0, 2))
+        env_q_a2.get()
+        action_q_a2.put((1, 0))
+        env_q_a1.get()
+        action_q_a1.put((1, 1))
+        env_q_a2.get()
+        action_q_a2.put((1, 2))
+        self.assertTrue(result_q.empty())
+        env_q_a1.get()
+        action_q_a1.put((2, 0))
+        time.sleep(0.1)
+        self.assertFalse(result_q.empty())
+        result = result_q.get()
+        self.assertEqual(result, 1)
+        self.assertFalse(p.is_alive())
+
+    def test_referee(self):
+        referee = Referee.Referee()
+        for _ in range(5):
+            agent1 = RandomAgent.RandomAgent()
+            agent2 = RandomAgent.RandomAgent()
+            referee.setup(agent1, agent2)
+            result = referee.host()
+            self.assertIn(result, (1, -1, 0))
+
 
 if __name__ == '__main__':
     unittest.main()
