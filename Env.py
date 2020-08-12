@@ -21,7 +21,7 @@ class TicTacToe:
             self.board = board
         self.state = None
 
-    def get_env(self):
+    def get_env(self, who=None):
         return self.board
 
     def check_game_state(self):
