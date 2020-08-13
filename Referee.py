@@ -1,7 +1,8 @@
 import multiprocessing
 import Env
-from Agents import RandomAgent
+from Agents import RandomAgent, MCTSAgent
 import logging
+import queue
 
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
@@ -131,6 +132,7 @@ class Referee:
     def __init__(self):
         self.start_who = 1
 
+        self.mt = False
         self.agent_proxy_p = dict()
         self.game_proxy_p = None
         self.to_agent1_env_q = None
@@ -138,58 +140,95 @@ class Referee:
         self.to_agent2_env_q = None
         self.to_agent2_action_q = None
         self.result_q = None
+        self.log = False
 
-    def setup(self, agent1, agent2, log=False, board=None):
+    def setup(self, agent1, agent2, log=False, board=None, mt=False):
         """
         setup the processes
         :param agent1: agent object for player 1, or "X", 1
         :param agent2: agent object for player 2, or "O", -1
         :param log: weather to log the game, passed to game_proxy
         :param board: the board to start with, passed to game_proxy
+        :param mt: whether to use multiprocessing
         """
-        self.to_agent1_env_q = multiprocessing.Queue()
-        self.to_agent1_action_q = multiprocessing.Queue()
-        self.to_agent2_env_q = multiprocessing.Queue()
-        self.to_agent2_action_q = multiprocessing.Queue()
-        self.result_q = multiprocessing.Queue()
-        self.agent_proxy_p[1] = multiprocessing.Process(name='agent_1',
-                                                        target=agent_proxy,
-                                                        args=(agent1, self.to_agent1_action_q, self.to_agent1_env_q))
-        self.agent_proxy_p[-1] = multiprocessing.Process(name='agent_2',
-                                                         target=agent_proxy,
-                                                         args=(agent2, self.to_agent2_action_q, self.to_agent2_env_q))
+        self.mt = mt
+        self.log = log
+        if self.mt:
+            self.to_agent1_env_q = multiprocessing.Queue()
+            self.to_agent1_action_q = multiprocessing.Queue()
+            self.to_agent2_env_q = multiprocessing.Queue()
+            self.to_agent2_action_q = multiprocessing.Queue()
+            self.result_q = multiprocessing.Queue()
+            self.agent_proxy_p[1] = multiprocessing.Process(name='agent_1',
+                                                            target=agent_proxy,
+                                                            args=(agent1, self.to_agent1_action_q, self.to_agent1_env_q))
+            self.agent_proxy_p[-1] = multiprocessing.Process(name='agent_2',
+                                                             target=agent_proxy,
+                                                             args=(agent2, self.to_agent2_action_q, self.to_agent2_env_q))
 
-        self.game_proxy_p = multiprocessing.Process(name='game',
-                                                    target=game_proxy,
-                                                    args=(self.to_agent1_env_q,
-                                                          self.to_agent2_env_q,
-                                                          self.to_agent1_action_q,
-                                                          self.to_agent2_action_q,
-                                                          self.result_q,
-                                                          self.start_who,
-                                                          log,
-                                                          board)
-                                                    )
+            self.game_proxy_p = multiprocessing.Process(name='game',
+                                                        target=game_proxy,
+                                                        args=(self.to_agent1_env_q,
+                                                              self.to_agent2_env_q,
+                                                              self.to_agent1_action_q,
+                                                              self.to_agent2_action_q,
+                                                              self.result_q,
+                                                              self.start_who,
+                                                              self.log,
+                                                              board)
+                                                        )
+        else:
+            self.to_agent1_env_q = queue.Queue()
+            self.to_agent1_action_q = queue.Queue()
+            self.to_agent2_env_q = queue.Queue()
+            self.to_agent2_action_q = queue.Queue()
+            self.result_q = queue.Queue()
+            self.agent_proxy_p[1] = AgentProxy(agent1, self.to_agent1_action_q, self.to_agent1_env_q)
+            self.agent_proxy_p[-1] = AgentProxy(agent2, self.to_agent2_action_q, self.to_agent2_env_q)
+            self.game_proxy_p = GameProxy(self.to_agent1_env_q,
+                                          self.to_agent2_env_q,
+                                          self.to_agent1_action_q,
+                                          self.to_agent2_action_q,
+                                          board
+                                          )
 
     def host(self):
         """
         host a whole game
         :return result: the result of the game
         """
-        self.agent_proxy_p[1].start()
-        self.agent_proxy_p[-1].start()
-        self.game_proxy_p.start()
-        result = self.result_q.get()
-        self.agent_proxy_p[1].terminate()
-        self.agent_proxy_p[-1].terminate()
-        self.game_proxy_p.terminate()
+        if self.mt:
+            # multiprocessing version
+            self.agent_proxy_p[1].start()
+            self.agent_proxy_p[-1].start()
+            self.game_proxy_p.start()
+            result = self.result_q.get()
+            self.agent_proxy_p[1].terminate()
+            self.agent_proxy_p[-1].terminate()
+            self.game_proxy_p.terminate()
+        else:
+            # single threaded version
+            status = self.game_proxy_p.game.check_game_state()
+            who = self.start_who
+            turn = 0
+            while status is None:
+                self.game_proxy_p.sense(who)
+                self.agent_proxy_p[who].evaluate()
+                self.game_proxy_p.action(who)
+                who = switch_turn(who)
+                status = self.game_proxy_p.game.check_game_state()
+                if self.log:
+                    logger.debug(f'Turn {turn}')
+                    logger.debug('Board: \n' + str(self.game_proxy_p.game))
+                turn += 1
+            result = status
         return result
 
 
 if __name__ == '__main__':
     referee = Referee()
-    agent1 = RandomAgent.RandomAgent(1)
-    agent2 = RandomAgent.RandomAgent(-1)
-    referee.setup(agent1, agent2)
+    agent1 = MCTSAgent.MCTSAgent(1)
+    agent2 = MCTSAgent.MCTSAgent(-1)
+    referee.setup(agent1, agent2, log=True, mt=True)
     result = referee.host()
     logger.debug(f'the result is {result}')
