@@ -1,8 +1,9 @@
 import multiprocessing
 import Env
-from Agents import RandomAgent, MCTSAgent
+from Agents import RandomAgent, MCTSAgent, NNAgent
 import logging
 import queue
+import traceback
 
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
@@ -14,11 +15,11 @@ class AgentProxy:
     """
     def __init__(self, agent, action_q, env_q):
         """
-        :param agent: the agent
+        :param agent: the agent config dict
         :param action_q: the action queue to send the actions
         :param env_q: the environment queue to get from the referee
         """
-        self.agent = agent
+        self.agent = agent['agent'](*agent['params'])
         self.action_q = action_q
         self.env_q = env_q
 
@@ -78,14 +79,18 @@ def switch_turn(who):
 def agent_proxy(agent, action_q, env_q):
     """
     the function utilizes AgentProxy to used by multiprocessing Process
-    :param agent: the agent type
+    :param agent: the agent config dict
     :param action_q: action info queue
     :param env_q: environment info queue
     """
     proxy = AgentProxy(agent, action_q, env_q)
     while True:
         # keep evaluating
-        proxy.evaluate()
+        try:
+            proxy.evaluate()
+        except Exception:
+            traceback.print_exc()
+            return
 
 
 def game_proxy(env_q_a1, env_q_a2, action_q_a1, action_q_a2, result_q, start_who, log=False, board=None):
@@ -145,8 +150,8 @@ class Referee:
     def setup(self, agent1, agent2, log=False, board=None, mt=False):
         """
         setup the processes
-        :param agent1: agent object for player 1, or "X", 1
-        :param agent2: agent object for player 2, or "O", -1
+        :param agent1: agent config dict for player 1, or "X", 1
+        :param agent2: agent config dict player 2, or "O", -1
         :param log: weather to log the game, passed to game_proxy
         :param board: the board to start with, passed to game_proxy
         :param mt: whether to use multiprocessing
@@ -227,8 +232,9 @@ class Referee:
 
 if __name__ == '__main__':
     referee = Referee()
-    agent1 = MCTSAgent.MCTSAgent(1)
-    agent2 = MCTSAgent.MCTSAgent(-1)
+    nn = NNAgent.NN()
+    agent1 = {'agent': NNAgent.NNAgent, 'params': (1, nn)}
+    agent2 = {'agent': NNAgent.NNAgent, 'params': (-1, nn)}
     referee.setup(agent1, agent2, log=True, mt=True)
     result = referee.host()
     logger.debug(f'the result is {result}')

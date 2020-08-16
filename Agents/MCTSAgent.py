@@ -118,8 +118,8 @@ def simulation(node):
     :return result: the simulation result
     """
     referee = Referee.Referee()
-    agent1 = RandomAgent(1)
-    agent2 = RandomAgent(-1)
+    agent1 = {'agent': RandomAgent, 'params': (1,)}
+    agent2 = {'agent': RandomAgent, 'params': (1,)}
     referee.setup(agent1, agent2, board=node.game.board)
     result = referee.host()
     v = result

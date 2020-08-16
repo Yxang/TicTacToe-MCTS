@@ -1,7 +1,7 @@
 import unittest
 import Env
 import Referee
-from Agents import RandomAgent, MCTSAgent
+from Agents import RandomAgent, MCTSAgent, NNAgent
 import multiprocessing
 import numpy as np
 import time
@@ -216,8 +216,46 @@ class TestReferee(unittest.TestCase):
         self.assertEqual(-1, Referee.switch_turn(1))
         self.assertEqual(1, Referee.switch_turn(-1))
 
+    def test_game_proxy(self):
+        env_q_a1 = multiprocessing.Queue()
+        env_q_a2 = multiprocessing.Queue()
+        action_q_a1 = multiprocessing.Queue()
+        action_q_a2 = multiprocessing.Queue()
+        result_q = multiprocessing.Queue()
+
+        p = multiprocessing.Process(name='game',
+                                    target=Referee.game_proxy,
+                                    args=(env_q_a1,
+                                          env_q_a2,
+                                          action_q_a1,
+                                          action_q_a2,
+                                          result_q,
+                                          1,
+                                          False)
+                                    )
+        p.start()
+        self.assertTrue(np.allclose(env_q_a1.get(), np.zeros((3, 3))))
+        action_q_a1.put((0, 0))
+        env_q_a2.get()
+        action_q_a2.put((0, 1))
+        env_q_a1.get()
+        action_q_a1.put((0, 2))
+        env_q_a2.get()
+        action_q_a2.put((1, 0))
+        env_q_a1.get()
+        action_q_a1.put((1, 1))
+        env_q_a2.get()
+        action_q_a2.put((1, 2))
+        self.assertTrue(result_q.empty())
+        env_q_a1.get()
+        action_q_a1.put((2, 0))
+        result = result_q.get()
+        self.assertEqual(result, 1)
+        time.sleep(.5)
+        self.assertFalse(p.is_alive())
+
     def test_agent_proxy(self):
-        agent = RandomAgent.RandomAgent(1)
+        agent = {'agent': RandomAgent.RandomAgent, 'params': (1,)}
         action_q = multiprocessing.Queue()
         env_q = multiprocessing.Queue()
         p = multiprocessing.Process(target=Referee.agent_proxy,
@@ -233,53 +271,18 @@ class TestReferee(unittest.TestCase):
 
         p.terminate()
 
-    def test_game_proxy(self):
-        env_q_a1 = multiprocessing.Queue()
-        env_q_a2 = multiprocessing.Queue()
-        action_q_a1 = multiprocessing.Queue()
-        action_q_a2 = multiprocessing.Queue()
-        result_q = multiprocessing.Queue()
-
-        p = multiprocessing.Process(target=Referee.game_proxy,
-                                    args=(env_q_a1, env_q_a2, action_q_a1, action_q_a2, result_q, 1, False))
-        p.start()
-
-        time.sleep(0.5)
-        self.assertTrue(not env_q_a1.empty())
-        self.assertTrue(env_q_a2.empty())
-        env_q_a1.get()
-        action_q_a1.put((0, 0))
-        env_q_a2.get()
-        action_q_a2.put((0, 1))
-        env_q_a1.get()
-        action_q_a1.put((0, 2))
-        env_q_a2.get()
-        action_q_a2.put((1, 0))
-        env_q_a1.get()
-        action_q_a1.put((1, 1))
-        env_q_a2.get()
-        action_q_a2.put((1, 2))
-        self.assertTrue(result_q.empty())
-        env_q_a1.get()
-        action_q_a1.put((2, 0))
-        time.sleep(0.1)
-        self.assertFalse(result_q.empty())
-        result = result_q.get()
-        self.assertEqual(result, 1)
-        self.assertFalse(p.is_alive())
-
     def test_referee(self):
         referee = Referee.Referee()
-        for _ in range(5):
-            agent1 = RandomAgent.RandomAgent(1)
-            agent2 = RandomAgent.RandomAgent(-1)
+        for _ in range(1):
+            agent1 = {'agent': RandomAgent.RandomAgent, 'params': (1,)}
+            agent2 = {'agent': RandomAgent.RandomAgent, 'params': (-1,)}
             referee.setup(agent1, agent2, mt=True)
             result = referee.host()
             self.assertIn(result, (1, -1, 0))
         referee = Referee.Referee()
-        for _ in range(5):
-            agent1 = RandomAgent.RandomAgent(1)
-            agent2 = RandomAgent.RandomAgent(-1)
+        for _ in range(1):
+            agent1 = {'agent': RandomAgent.RandomAgent, 'params': (1,)}
+            agent2 = {'agent': RandomAgent.RandomAgent, 'params': (-1,)}
             referee.setup(agent1, agent2, mt=False)
             result = referee.host()
             self.assertIn(result, (1, -1, 0))
@@ -452,6 +455,64 @@ class TestMCTSAgent(unittest.TestCase):
         self.assertEqual(a, (0, 1))
 
 
+class TestNNAgent(unittest.TestCase):
+    def test_convert_env_to_input(self):
+        import torch
+        board = np.array([[0, 1, 1],
+                          [1, 0, -1],
+                          [1, 1, 0]])
+        with self.assertRaises(AssertionError):
+            NNAgent.convert_env_to_input(board, 2)
+        t = NNAgent.convert_env_to_input(board, 1)
+        self.assertTrue(isinstance(t, torch.Tensor))
+        self.assertTrue(np.allclose(t.shape, [1, 2, 3, 3]))
+        b0 = t[0, 0, :].numpy()
+        self.assertTrue(np.allclose(b0,
+                                    np.array([[0, 1, 1],
+                                              [1, 0, 0],
+                                              [1, 1, 0]])))
+        b1 = t[0, 1, :].numpy()
+        self.assertTrue(np.allclose(b1,
+                                    np.array([[0, 0, 0],
+                                              [0, 0, 1],
+                                              [0, 0, 0]])))
+
+    def test_get_best_valid_move(self):
+        import torch
+        p = torch.tensor([.1, .1, .1, .1, .1, .1, .15, .05, .1])
+        board = np.array([[1, 1, 0],
+                          [0, 0, 0],
+                          [0, 0, 0]])
+        valid_moves = Env.get_valid_moves(board)
+        a = NNAgent.get_best_valid_move(p, valid_moves)
+        self.assertTrue(a, (2, 0))
+
+        p.cuda()
+        a = NNAgent.get_best_valid_move(p, valid_moves)
+        self.assertTrue(a, (2, 0))
+
+    def test_policy(self):
+        net = NNAgent.NN()
+        agent = NNAgent.NNAgent(1, net)
+        env = np.array([[0, 1, 1],
+                        [1, 0, -1],
+                        [1, 1, 0]])
+
+        env_ = np.array([[0, 1, 1],
+                         [1, 0, -1],
+                         [1, 1, 0]])
+        count = {(0, 0): 0,
+                 (1, 1): 0,
+                 (2, 2): 0}
+        for _ in range(100):
+            a = agent.policy(env)
+            self.assertEqual(env[a], 0)
+            self.assertEqual(a[0], a[1])
+            self.assertTrue(a[0] in (0, 1, 2))
+            self.assertTrue(np.allclose(env, env_))
+            count[a] += 1
+
+        self.assertEqual(max(count.values()), 100)
 
 if __name__ == '__main__':
     unittest.main()
