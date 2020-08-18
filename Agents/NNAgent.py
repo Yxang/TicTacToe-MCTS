@@ -2,7 +2,6 @@ import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as f
-import torch.optim as optim
 
 import Agents.MCTSAgent as MCTSAgent
 import Env
@@ -78,6 +77,16 @@ class NNAgent(MCTSAgent.RandomAgent):
     def __init__(self, player, nn):
         super().__init__(player)
         import torch
+        nn.eval()
+        self.nn = nn
+        nn.cuda()
+        self.device = get_nn_device(nn)
+
+    def assign_nn(self, nn):
+        """
+        assign a nn to the agent
+        :param nn:
+        """
         nn.eval()
         self.nn = nn
         nn.cuda()
