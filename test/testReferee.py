@@ -69,19 +69,20 @@ class TestReferee(unittest.TestCase):
 
     def test_referee(self):
         referee = Referee.Referee()
-        for _ in range(1):
+        for _ in range(5):
             agent1 = {'agent': RandomAgent.RandomAgent, 'params': (1,)}
             agent2 = {'agent': RandomAgent.RandomAgent, 'params': (-1,)}
             referee.setup(agent1, agent2, mt=True)
             result = referee.host()
             self.assertIn(result, (1, -1, 0))
         referee = Referee.Referee()
-        for _ in range(1):
+        for _ in range(5):
             agent1 = {'agent': RandomAgent.RandomAgent, 'params': (1,)}
             agent2 = {'agent': RandomAgent.RandomAgent, 'params': (-1,)}
             referee.setup(agent1, agent2, mt=False)
             result = referee.host()
             self.assertIn(result, (1, -1, 0))
+
 
 if __name__ == '__main__':
     unittest.main()
