@@ -50,6 +50,43 @@ class TestReferee(unittest.TestCase):
         time.sleep(.5)
         self.assertFalse(p.is_alive())
 
+        env_q_a1 = multiprocessing.Queue()
+        env_q_a2 = multiprocessing.Queue()
+        action_q_a1 = multiprocessing.Queue()
+        action_q_a2 = multiprocessing.Queue()
+        result_q = multiprocessing.Queue()
+
+        p = multiprocessing.Process(name='game',
+                                    target=Referee.game_proxy,
+                                    args=(env_q_a1,
+                                          env_q_a2,
+                                          action_q_a1,
+                                          action_q_a2,
+                                          result_q,
+                                          -1,
+                                          False)
+                                    )
+        p.start()
+        self.assertTrue(np.allclose(env_q_a2.get(), np.zeros((3, 3))))
+        action_q_a2.put((0, 0))
+        env_q_a1.get()
+        action_q_a1.put((0, 1))
+        env_q_a2.get()
+        action_q_a2.put((0, 2))
+        env_q_a1.get()
+        action_q_a1.put((1, 0))
+        env_q_a2.get()
+        action_q_a2.put((1, 1))
+        env_q_a1.get()
+        action_q_a1.put((1, 2))
+        self.assertTrue(result_q.empty())
+        env_q_a2.get()
+        action_q_a2.put((2, 0))
+        result = result_q.get()
+        self.assertEqual(result, -1)
+        time.sleep(.5)
+        self.assertFalse(p.is_alive())
+
     def test_agent_proxy(self):
         agent = {'agent': RandomAgent.RandomAgent, 'params': (1,)}
         action_q = multiprocessing.Queue()

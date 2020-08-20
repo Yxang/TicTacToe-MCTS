@@ -120,7 +120,7 @@ def simulation(node):
     referee = Referee.Referee()
     agent1 = {'agent': RandomAgent, 'params': (1,)}
     agent2 = {'agent': RandomAgent, 'params': (1,)}
-    referee.setup(agent1, agent2, board=node.game.board)
+    referee.setup(agent1, agent2, board=node.game.board, start_who=node.now_who)
     result = referee.host()
     v = result
     return v

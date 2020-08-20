@@ -147,13 +147,14 @@ class Referee:
         self.result_q = None
         self.log = False
 
-    def setup(self, agent1, agent2, log=False, board=None, mt=False):
+    def setup(self, agent1, agent2, log=False, board=None, start_who=1, mt=False):
         """
         setup the processes
         :param agent1: agent config dict for player 1, or "X", 1
         :param agent2: agent config dict player 2, or "O", -1
         :param log: weather to log the game, passed to game_proxy
         :param board: the board to start with, passed to game_proxy
+        :param start_who: who's tern to start
         :param mt: whether to use multiprocessing
         """
         self.mt = mt
@@ -178,7 +179,7 @@ class Referee:
                                                               self.to_agent1_action_q,
                                                               self.to_agent2_action_q,
                                                               self.result_q,
-                                                              self.start_who,
+                                                              start_who,
                                                               self.log,
                                                               board)
                                                         )
@@ -233,8 +234,8 @@ class Referee:
 if __name__ == '__main__':
     referee = Referee()
     nn = NNAgent.NN()
-    agent1 = {'agent': NNAgent.NNAgent, 'params': (1, nn)}
-    agent2 = {'agent': NNAgent.NNAgent, 'params': (-1, nn)}
+    agent1 = {'agent': MCTSAgent.MCTSAgent, 'params': (1,)}
+    agent2 = {'agent': MCTSAgent.MCTSAgent, 'params': (-1,)}
     referee.setup(agent1, agent2, log=True, mt=True)
     result = referee.host()
     logger.debug(f'the result is {result}')
