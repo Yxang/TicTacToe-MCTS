@@ -173,6 +173,7 @@ class MCTSAgent(RandomAgent):
         self.mt = mt
         self.c_base = c_base
         self.c_init = c_init
+        self.root = None
 
     def policy(self, env):
         """
@@ -182,6 +183,7 @@ class MCTSAgent(RandomAgent):
         """
         game = Env.TicTacToe(env)
         root = MCTSNode(game, now_who=self.player, c_base=self.c_base, c_init=self.c_init)
+        self.root = root
         build_tree(root, self.n_sim)
         a = choose_best_action(root)
         return a
