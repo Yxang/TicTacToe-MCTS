@@ -31,7 +31,7 @@ class NN(nn.Module):
         x2 = f.leaky_relu(self.fc1(x2))
         x = x1 + x2
         policy = f.softmax(self.policy(x), 1)
-        value = torch.sigmoid(self.value(x))
+        value = torch.sigmoid(self.value(x)) * 2 - 1
         return policy, value
 
 
