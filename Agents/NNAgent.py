@@ -16,8 +16,17 @@ class NN(nn.Module):
         self.value = nn.Linear(5, 1)
 
     def forward(self, x):
-        x1 = torch.flatten(x[:, 0, :, :], 1)
-        x2 = torch.flatten(x[:, 1, :, :], 1)
+        x, who = x
+        x1 = (torch.where(x == who,
+                          torch.tensor(1., device=get_nn_device(self)),
+                          torch.tensor(0., device=get_nn_device(self)))
+              .flatten(1)
+              )
+        x2 = (torch.where(x == -who,
+                          torch.tensor(1., device=get_nn_device(self)),
+                          torch.tensor(0., device=get_nn_device(self)))
+              .flatten(1)
+              )
         x1 = f.leaky_relu(self.fc1(x1))
         x2 = f.leaky_relu(self.fc1(x2))
         x = x1 + x2
@@ -34,12 +43,9 @@ def convert_env_to_input(env, who):
     :return env_torch: converted tensor
     """
     assert who in (1, -1)
-    my_board = np.where(env == who, 1, 0)
-    opp_board = np.where(env == -who, 1, 0)
-    my_torch = torch.tensor(my_board, dtype=torch.float32)
-    opp_torch = torch.tensor(opp_board, dtype=torch.float32)
-    env_torch = torch.stack([my_torch, opp_torch]).unsqueeze(0)
-    return env_torch
+    env_torch = torch.tensor(env, dtype=torch.float32).unsqueeze(0)
+    who_torch = torch.tensor(who, dtype=torch.int32)
+    return env_torch, who_torch
 
 
 def get_nn_device(nn):
@@ -99,7 +105,8 @@ class NNAgent(MCTSAgent.RandomAgent):
         :return action: the 2-tuple action
         """
         valid_moves = Env.get_valid_moves(env)
-        env_torch = convert_env_to_input(env, self.player).to(self.device)
+        env_torch = convert_env_to_input(env, self.player)
+        env_torch = [item.to(self.device) for item in env_torch]
         with torch.no_grad():
             p, _ = self.nn(env_torch)
         a = get_best_valid_move(p, valid_moves)
