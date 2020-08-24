@@ -16,6 +16,11 @@ class NN(nn.Module):
         self.value = nn.Linear(5, 1)
 
     def forward(self, x):
+        """
+        the input of this network is a (env, who) pair
+        :param x:
+        :return:
+        """
         x, who = x
         x1 = (torch.where(x == who,
                           torch.tensor(1., device=get_nn_device(self)),
@@ -40,12 +45,13 @@ def convert_env_to_input(env, who):
     convert a env (np.ndarray) to pytorch tensor
     :param env: the env to be converted
     :param who: which player, in (1, -1)
-    :return env_torch: converted tensor
+    :return nn_feature: converted tensor
     """
     assert who in (1, -1)
     env_torch = torch.tensor(env, dtype=torch.float32).unsqueeze(0)
     who_torch = torch.tensor(who, dtype=torch.int32)
-    return env_torch, who_torch
+    nn_feature = env_torch, who_torch
+    return nn_feature
 
 
 def get_nn_device(nn):
@@ -105,9 +111,9 @@ class NNAgent(MCTSAgent.RandomAgent):
         :return action: the 2-tuple action
         """
         valid_moves = Env.get_valid_moves(env)
-        env_torch = convert_env_to_input(env, self.player)
-        env_torch = [item.to(self.device) for item in env_torch]
+        nn_feature = convert_env_to_input(env, self.player)
+        nn_feature = [item.to(self.device) for item in nn_feature]
         with torch.no_grad():
-            p, _ = self.nn(env_torch)
+            p, _ = self.nn(nn_feature)
         a = get_best_valid_move(p, valid_moves)
         return a
