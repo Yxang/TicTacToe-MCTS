@@ -120,10 +120,10 @@ class NNReferee(Referee.Referee):
                                                   self.to_agent2_env_q,
                                                   self.training_data_q)
             self.game_proxy_p = Referee.GameProxy(self.to_agent1_env_q,
-                                          self.to_agent2_env_q,
-                                          self.to_agent1_action_q,
-                                          self.to_agent2_action_q,
-                                          board)
+                                                  self.to_agent2_env_q,
+                                                  self.to_agent1_action_q,
+                                                  self.to_agent2_action_q,
+                                                  board)
 
     def host(self):
         """
