@@ -21,17 +21,8 @@ class NN(nn.Module):
         :param x:
         :return:
         """
-        x, who = x
-        x1 = (torch.where(x == who,
-                          torch.tensor(1., device=get_nn_device(self)),
-                          torch.tensor(0., device=get_nn_device(self)))
-              .flatten(1)
-              )
-        x2 = (torch.where(x == -who,
-                          torch.tensor(1., device=get_nn_device(self)),
-                          torch.tensor(0., device=get_nn_device(self)))
-              .flatten(1)
-              )
+        x1 = x[:, 0, :, :].flatten(1)
+        x2 = x[:, 1, :, :].flatten(1)
         x1 = f.leaky_relu(self.fc1(x1))
         x2 = f.leaky_relu(self.fc1(x2))
         x = x1 + x2
@@ -48,9 +39,10 @@ def convert_env_to_input(env, who):
     :return nn_feature: converted tensor
     """
     assert who in (1, -1)
-    env_torch = torch.tensor(env, dtype=torch.float32).unsqueeze(0)
-    who_torch = torch.tensor(who, dtype=torch.int32)
-    nn_feature = env_torch, who_torch
+    my_board = np.where(env == who, 1., 0.)
+    op_board = np.where(env == -who, 1., 0.)
+    nn_feature = np.stack([my_board, op_board])
+    nn_feature = torch.tensor(nn_feature, dtype=torch.float32).unsqueeze(0)
     return nn_feature
 
 
@@ -86,6 +78,7 @@ class NNAgent(MCTSAgent.RandomAgent):
     """
     Agent plays TicTacToe guided by a neural network agent
     """
+
     def __init__(self, player, nn):
         super().__init__(player)
         import torch
@@ -112,7 +105,7 @@ class NNAgent(MCTSAgent.RandomAgent):
         """
         valid_moves = Env.get_valid_moves(env)
         nn_feature = convert_env_to_input(env, self.player)
-        nn_feature = [item.to(self.device) for item in nn_feature]
+        nn_feature = nn_feature.to(self.device)
         with torch.no_grad():
             p, _ = self.nn(nn_feature)
         a = get_best_valid_move(p, valid_moves)

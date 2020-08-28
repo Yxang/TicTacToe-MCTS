@@ -49,13 +49,10 @@ class TestNNReferee(unittest.TestCase):
             self.assertEqual(len(training_data), 9)
             self.assertEqual(len(training_data[0]), 3)
             nn_feature, policy, value = training_data[0]
-            self.assertEqual(len(nn_feature), 2)
-            self.assertIsInstance(nn_feature[0], torch.Tensor)
-            self.assertIsInstance(nn_feature[1], torch.Tensor)
+            self.assertIsInstance(nn_feature, torch.Tensor)
             self.assertIsInstance(policy, torch.Tensor)
             self.assertIsInstance(value, torch.Tensor)
-            self.assertEqual(nn_feature[0].shape, (1, 3, 3), msg=f'the shape is {nn_feature[0].shape}')
-            self.assertEqual(nn_feature[1].item(), 1, msg=f'who is {nn_feature[1]}')
+            self.assertEqual(nn_feature.shape, (1, 2, 3, 3), msg=f'the shape is {nn_feature[0].shape}')
             self.assertEqual(policy.shape, (9,), msg=f'the shape is {policy.shape}')
             self.assertEqual(value.item(), result, msg=f'the value is {value}')
 
@@ -69,13 +66,10 @@ class TestNNReferee(unittest.TestCase):
             self.assertEqual(len(training_data), 9)
             self.assertEqual(len(training_data[0]), 3)
             nn_feature, policy, value = training_data[0]
-            self.assertEqual(len(nn_feature), 2)
-            self.assertIsInstance(nn_feature[0], torch.Tensor)
-            self.assertIsInstance(nn_feature[1], torch.Tensor)
+            self.assertIsInstance(nn_feature, torch.Tensor)
             self.assertIsInstance(policy, torch.Tensor)
             self.assertIsInstance(value, torch.Tensor)
-            self.assertEqual(nn_feature[0].shape, (1, 3, 3), msg=f'the shape is {nn_feature[0].shape}')
-            self.assertEqual(nn_feature[1].item(), 1, msg=f'who is {nn_feature[1]}')
+            self.assertEqual(nn_feature.shape, (1, 2, 3, 3), msg=f'the shape is {nn_feature[0].shape}')
             self.assertEqual(policy.shape, (9,), msg=f'the shape is {policy.shape}')
             self.assertEqual(value.item(), result, msg=f'the value is {value}')
 

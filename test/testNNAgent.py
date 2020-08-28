@@ -2,29 +2,43 @@ import unittest
 import Env
 from Agents import NNAgent
 import numpy as np
+import torch
 
 
 class TestNNAgent(unittest.TestCase):
     def test_cuda_available(self):
-        import torch
         self.assertTrue(torch.cuda.is_available())
 
     def test_convert_env_to_input(self):
-        import torch
         board = np.array([[0, 1, 1],
                           [1, 0, -1],
                           [1, 1, 0]])
         with self.assertRaises(AssertionError):
             NNAgent.convert_env_to_input(board, 2)
         t = NNAgent.convert_env_to_input(board, 1)
-        self.assertTrue(isinstance(t[0], torch.Tensor))
-        self.assertTrue(t[1] in (1, -1))
-        self.assertTrue(np.allclose(t[0].shape, [1, 3, 3]))
-        b0 = t[0][0, :].numpy()
-        self.assertTrue(np.allclose(b0, board))
+        self.assertTrue(isinstance(t, torch.Tensor))
+        self.assertTrue(np.allclose(t.shape, (1, 2, 3, 3)))
+        b0 = t[0, 0, :].numpy()
+        self.assertTrue(np.allclose(b0, np.array([[0, 1, 1],
+                                                  [1, 0, 0],
+                                                  [1, 1, 0]])))
+        b1 = t[0, 1, :].numpy()
+        self.assertTrue(np.allclose(b1, np.array([[0, 0, 0],
+                                                  [0, 0, 1],
+                                                  [0, 0, 0]])))
+
+    def test_NN_output(self):
+        net = NNAgent.NN()
+        board = np.array([[0, 1, 1],
+                          [1, 0, -1],
+                          [1, 1, 0]])
+        t = NNAgent.convert_env_to_input(board, 1)
+        t = torch.cat([t, t], dim=0)
+        policy, result = net(t)
+        self.assertEqual(policy.shape, (2, 9))
+        self.assertEqual(result.shape, (2, 1))
 
     def test_get_best_valid_move(self):
-        import torch
         p = torch.tensor([.1, .1, .1, .1, .1, .1, .15, .05, .1])
         board = np.array([[1, 1, 0],
                           [0, 0, 0],
@@ -38,7 +52,6 @@ class TestNNAgent(unittest.TestCase):
         self.assertTrue(a, (2, 0))
 
     def test_policy(self):
-        import torch
         net = NNAgent.NN()
         agent = NNAgent.NNAgent(1, net)
         env = np.array([[0, 1, 1],
