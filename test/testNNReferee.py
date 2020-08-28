@@ -26,10 +26,8 @@ class TestNNReferee(unittest.TestCase):
         self.assertTrue(action in Env.get_valid_moves(board))
 
         nn_feature, policy = training_data_q.get()
-        self.assertTrue(isinstance(nn_feature[0], torch.Tensor), msg=f'nn_feature[0] is {type(nn_feature[0])}')
-        self.assertTrue(isinstance(nn_feature[1], torch.Tensor), msg=f'nn_feature[0] is {type(nn_feature[1])}')
-        self.assertTrue(nn_feature[0].shape == (1, 3, 3))
-        self.assertEqual(nn_feature[1].item(), 1)
+        self.assertTrue(isinstance(nn_feature, torch.Tensor), msg=f'nn_feature[0] is {type(nn_feature)}')
+        self.assertTrue(nn_feature.shape == (1, 2, 3, 3))
         self.assertTrue(isinstance(policy, torch.Tensor))
         self.assertTrue(policy.shape == (9,))
         self.assertTrue(torch.all(policy[[0, 4, 8]] > 0))
