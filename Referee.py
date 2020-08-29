@@ -1,6 +1,6 @@
 import multiprocessing
 import Env
-from Agents import RandomAgent, MCTSAgent, NNAgent
+from Agents import RandomAgent, MCTSAgent, NNAgent, HumanAgent
 import logging
 import queue
 import traceback
@@ -147,6 +147,10 @@ class Referee:
         self.result_q = None
         self.log = False
 
+    def _check_human_proxy(self, agent, mt):
+        if mt and agent['agent'] == HumanAgent.HumanAgent:
+            raise TypeError("Human Agent in multiprocsssing is not available")
+
     def setup(self, agent1, agent2, log=False, board=None, start_who=1, mt=False):
         """
         setup the processes
@@ -157,6 +161,8 @@ class Referee:
         :param start_who: who's tern to start
         :param mt: whether to use multiprocessing
         """
+        self._check_human_proxy(agent1, mt)
+        self._check_human_proxy(agent2, mt)
         self.mt = mt
         self.log = log
         if self.mt:
@@ -234,8 +240,8 @@ class Referee:
 if __name__ == '__main__':
     referee = Referee()
     nn = NNAgent.NN()
-    agent1 = {'agent': MCTSAgent.MCTSAgent, 'params': (1,)}
+    agent1 = {'agent': HumanAgent.HumanAgent, 'params': (1,)}
     agent2 = {'agent': MCTSAgent.MCTSAgent, 'params': (-1,)}
-    referee.setup(agent1, agent2, log=True, mt=True)
+    referee.setup(agent1, agent2, log=True, mt=False)
     result = referee.host()
     logger.debug(f'the result is {result}')

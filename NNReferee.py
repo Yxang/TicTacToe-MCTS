@@ -72,6 +72,8 @@ class NNReferee(Referee.Referee):
         :param start_who: who's tern to start
         :param mt: whether to use multiprocessing
         """
+        self._check_human_proxy(agent1, mt)
+        self._check_human_proxy(agent2, mt)
         self.mt = mt
         self.log = log
         if self.mt:
