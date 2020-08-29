@@ -13,6 +13,10 @@ import Referee
 
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
+try:
+    multiprocessing.set_start_method('spawn')
+except:
+    pass
 
 
 class NNAgentProxy(Referee.AgentProxy):
@@ -137,6 +141,7 @@ class NNReferee(Referee.Referee):
             self.agent_proxy_p[-1].start()
             self.game_proxy_p.start()
             result = self.result_q.get()
+            training_data = self.get_training_data(result)
             self.agent_proxy_p[1].terminate()
             self.agent_proxy_p[-1].terminate()
             self.game_proxy_p.terminate()
@@ -157,7 +162,7 @@ class NNReferee(Referee.Referee):
                     logger.debug('Board: \n' + str(self.game_proxy_p.game))
                 turn += 1
             result = status
-        training_data = self.get_training_data(result)
+            training_data = self.get_training_data(result)
         return result, training_data
 
     def get_training_data(self, result):

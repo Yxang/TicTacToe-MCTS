@@ -238,6 +238,10 @@ class Referee:
 
 
 if __name__ == '__main__':
+    try:
+        multiprocessing.set_start_method('spawn')
+    except:
+        pass
     referee = Referee()
     nn = NNAgent.NN()
     agent1 = {'agent': HumanAgent.HumanAgent, 'params': (1,)}

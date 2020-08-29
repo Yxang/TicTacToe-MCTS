@@ -44,7 +44,7 @@ class TestNNReferee(unittest.TestCase):
             referee.setup(agent1, agent2, mt=True)
             result, training_data = referee.host()
             self.assertIn(result, (1, -1, 0))
-            self.assertEqual(len(training_data), 9)
+            self.assertLessEqual(len(training_data), 9)
             self.assertEqual(len(training_data[0]), 3)
             nn_feature, policy, value = training_data[0]
             self.assertIsInstance(nn_feature, torch.Tensor)
@@ -61,7 +61,7 @@ class TestNNReferee(unittest.TestCase):
             referee.setup(agent1, agent2, mt=False)
             result, training_data = referee.host()
             self.assertIn(result, (1, -1, 0))
-            self.assertEqual(len(training_data), 9)
+            self.assertLessEqual(len(training_data), 9)
             self.assertEqual(len(training_data[0]), 3)
             nn_feature, policy, value = training_data[0]
             self.assertIsInstance(nn_feature, torch.Tensor)
