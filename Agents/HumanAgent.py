@@ -22,7 +22,8 @@ class HumanAgent(RandomAgent.RandomAgent):
         :return action: the 2-tuple action
         """
         valid_moves = Env.get_valid_moves(env)
-        print(f'Player {self.player}\'s turn')
+        players_mark = 'X' if self.player == 1 else 'O'
+        print(f'Player {players_mark}\'s turn')
         print('The board is')
         print(Env.TicTacToe(env))
         a = self._input_to_action(input('input your action in format "row, column":\n'))
