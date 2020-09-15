@@ -8,8 +8,9 @@ import torch.nn as nn
 import torch.nn.functional as f
 import torch.optim as optim
 import Env
-from Agents import RandomAgent, MCTSAgent, NNAgent, MCTSNNAgent
+from Agents import RandomAgent, MCTSAgent, NNAgent, MCTSNNAgent, HumanAgent
 import Referee
+import NNTrainer
 
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
@@ -38,8 +39,8 @@ class NNAgentProxy(Referee.AgentProxy):
         """
         send the training data to training_data_q, where a training data is (nn_feature, policy)
         """
-        assert isinstance(self.agent, MCTSNNAgent.MCTSNNAgent)
-        self.training_data_q.put(self.agent.get_training_data())
+        if isinstance(self.agent, MCTSNNAgent.MCTSNNAgent):
+            self.training_data_q.put(self.agent.get_training_data())
 
 
 def nn_agent_proxy(agent, action_q, env_q, training_data_q):
@@ -180,3 +181,17 @@ class NNReferee(Referee.Referee):
         for nn_feature, policy in training_data_2:
             training_data.append((nn_feature, policy, value))
         return training_data
+
+
+if __name__ == '__main__':
+    try:
+        multiprocessing.set_start_method('spawn')
+    except:
+        pass
+    net = NNTrainer.load_model(NNAgent.NN, 'models/test.model')
+    referee = NNReferee()
+    agent1 = {'agent': MCTSNNAgent.MCTSNNAgent, 'params': (1, net)}
+    agent2 = {'agent': MCTSAgent.MCTSAgent, 'params': (-1,)}
+    referee.setup(agent1, agent2, mt=False)
+    result, _ = referee.host()
+    logger.debug(f'the result is {result}')

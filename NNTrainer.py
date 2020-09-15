@@ -103,3 +103,15 @@ def load_model(model_class, path):
     net = model_class()
     net.load_state_dict(torch.load(path))
     return net
+
+
+if __name__ == '__main__':
+    net = NNAgent.NN()
+    agent1 = {'agent': MCTSNNAgent.MCTSNNAgent, 'params': (1, net)}
+    agent2 = {'agent': MCTSNNAgent.MCTSNNAgent, 'params': (-1, net)}
+    referee = NNReferee.NNReferee()
+    referee.setup(agent1, agent2, mt=False)
+    result, training_data = referee.host()
+    trainer = NNTrainer(net, training_data)
+    trainer.train()
+    trainer.save('models/test.model')
